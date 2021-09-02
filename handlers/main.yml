@@ -13,6 +13,7 @@
     - not wg_syncconf
     - not ansible_os_family == 'Darwin'
     - wireguard_service_enabled == "yes"
+    - not wireguard_unraid
   listen: "reconfigure wireguard"
 
 - name: syncconf wireguard
@@ -29,4 +30,21 @@
     - wg_syncconf
     - not ansible_os_family == 'Darwin'
     - wireguard_service_enabled == "yes"
+    - not wireguard_unraid
+  listen: "reconfigure wireguard"
+
+- name: syncconf wireguard
+  shell: |
+    set -o errexit
+    set -o pipefail
+    set -o nounset
+    wg show {{ wireguard_interface|quote }} || wg-quick up {{ wireguard_interface|quote }}
+    wg syncconf {{ wireguard_interface|quote }} <(wg-quick strip /boot/config/wireguard/{{ wireguard_interface|quote }}.conf)
+    exit 0
+  args:
+    executable: "/bin/bash"
+  when:
+    - wg_syncconf
+    - wireguard_service_enabled == "yes"
+    - wireguard_unraid
   listen: "reconfigure wireguard"

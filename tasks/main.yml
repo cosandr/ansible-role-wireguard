@@ -10,6 +10,7 @@
     apply:
       tags:
         - wg-install
+        - install
   with_first_found:
     - "setup-{{ ansible_distribution|lower }}-{{ ansible_distribution_major_version }}.yml"
     - "setup-{{ ansible_distribution|lower }}-{{ ansible_distribution_version }}.yml"
@@ -18,6 +19,7 @@
     - "setup-{{ ansible_os_family|lower }}.yml"
   tags:
     - wg-install
+    - install
 
 - name: Enable WireGuard kernel module
   modprobe:
@@ -30,7 +32,10 @@
   failed_when: wireguard__register_module_enabled is failure
   tags:
     - wg-install
-  when: not ansible_os_family == 'Darwin'
+    - install
+  when:
+    - not ansible_os_family == 'Darwin'
+    - not wireguard_unraid
 
 - name: Generate keys | Check wg syncconf subcommand status
   block:
@@ -62,6 +67,7 @@
       command: "wg genkey"
       register: wireguard__register_private_key
       changed_when: false
+      check_mode: false
       no_log: '{{ ansible_verbosity < 3 }}'
       tags:
         - wg-generate-keys
@@ -146,4 +152,6 @@
     name: "wg-quick@{{ wireguard_interface }}"
     state: "{{ wireguard_service_state }}"
     enabled: "{{ wireguard_service_enabled }}"
-  when: not ansible_os_family == 'Darwin'
+  when:
+    - not ansible_os_family == 'Darwin'
+    - not wireguard_unraid
