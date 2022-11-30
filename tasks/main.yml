@@ -46,6 +46,8 @@
       {%- else -%}
       false
       {%- endif %}
+  tags:
+    - skip_ansible_lint
 
 - name: Make sure wg syncconf option is available
   when:
@@ -81,6 +83,8 @@
       {%- else -%}
       'syncconf'
       {%- endif %}
+  tags:
+    - skip_ansible_lint
 
 - name: Register if config/private key already exists on target host
   ansible.builtin.stat:
