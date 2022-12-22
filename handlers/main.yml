@@ -33,7 +33,7 @@
     - not wireguard_unraid
   listen: "reconfigure wireguard"
 
-- name: syncconf wireguard
+- name: Syncconf wireguard
   shell: |
     set -o errexit
     set -o pipefail
@@ -44,7 +44,7 @@
   args:
     executable: "/bin/bash"
   when:
-    - wg_syncconf
+    - not wireguard__restart_interface
     - wireguard_service_enabled == "yes"
     - wireguard_unraid
   listen: "reconfigure wireguard"
