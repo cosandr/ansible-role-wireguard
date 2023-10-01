@@ -6,6 +6,9 @@
 # General settings
 #######################################
 
+# Auto-managed hosts
+wireguard_managed_peers: "{{ ansible_play_hosts }}"
+
 # Detect if running on unraid
 wireguard_unraid: "{{ (ansible_kernel | lower).find('unraid') != -1 }}"
 
