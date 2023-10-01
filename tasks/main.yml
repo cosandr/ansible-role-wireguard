@@ -167,7 +167,7 @@
     owner: "{{ wireguard_conf_owner }}"
     group: "{{ wireguard_conf_group }}"
     mode: "{{ wireguard_conf_mode }}"
-  no_log: '{{ ansible_verbosity < 3 }}'
+  no_log: "{{ wireguard_config_no_log | bool }}"
   tags:
     - wg-config
   notify:
