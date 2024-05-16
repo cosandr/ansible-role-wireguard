@@ -191,3 +191,19 @@
   when:
     - not ansible_os_family == 'Darwin'
     - not wireguard_unraid
+
+- name: Install reresolve-dns
+  ansible.builtin.include_tasks:
+    file: install-reresolve-dns.yml
+  when:
+    - not ansible_os_family == 'Darwin'
+    - not wireguard_unraid
+    - wireguard_reresolve_dns
+
+- name: Remove reresolve-dns
+  ansible.builtin.include_tasks:
+    file: remove-reresolve-dns.yml
+  when:
+    - not ansible_os_family == 'Darwin'
+    - not wireguard_unraid
+    - not wireguard_reresolve_dns

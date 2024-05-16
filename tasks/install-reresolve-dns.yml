@@ -1,0 +1,37 @@
+---
+
+- name: Include OS-specific variables.
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Make sure reresolve-dns.sh exists
+  ansible.builtin.stat:
+    path: "{{ wireguard_reresolve_dns_path }}"
+  register: reresolve_dns_check
+  failed_when: not reresolve_dns_check.stat.exists
+
+- name: Copy wireguard_reresolve-dns-wrapper
+  ansible.builtin.template:
+    src: "usr/local/bin/wireguard_reresolve-dns-wrapper"
+    dest: "/usr/local/bin/wireguard_reresolve-dns-wrapper"
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Install reresolve-dns service and timer
+  ansible.builtin.template:
+    src: "etc/systemd/system/wireguard_reresolve-dns.{{ item }}.j2"
+    dest: "/etc/systemd/system/wireguard_reresolve-dns.{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - service
+    - timer
+  notify: Reload systemd
+
+- name: Enable and start reresolve-dns timer
+  ansible.builtin.systemd:
+    name: wireguard_reresolve-dns.timer
+    enabled: true
+    state: started
+    daemon_reload: true

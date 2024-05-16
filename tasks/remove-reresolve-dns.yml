@@ -1,0 +1,21 @@
+---
+
+- name: Disable and stop timer
+  ansible.builtin.systemd:
+    name: "wireguard_reresolve-dns.timer"
+    state: stopped
+    enabled: false
+  register: __svc
+  failed_when:
+    - __svc.failed
+    - "'Could not find the requested service' not in __svc.msg"
+
+- name: Remove files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /usr/local/bin/wireguard_reresolve-dns-wrapper
+    - /etc/systemd/system/wireguard_reresolve-dns.service
+    - /etc/systemd/system/wireguard_reresolve-dns.timer
+  notify: Reload systemd

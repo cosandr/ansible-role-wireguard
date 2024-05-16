@@ -2,6 +2,10 @@
 # Copyright (C) 2018-2023 Robert Wimmer
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
 - name: Restart wireguard
   ansible.builtin.service:
     name: "wg-quick@{{ wireguard_interface }}"

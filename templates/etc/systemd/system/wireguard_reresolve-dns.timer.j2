@@ -1,0 +1,8 @@
+[Unit]
+Description=Periodically reresolve DNS of all WireGuard endpoints
+
+[Timer]
+OnCalendar={{ wireguard_reresolve_dns_oncalendar }}
+
+[Install]
+WantedBy=timers.target
