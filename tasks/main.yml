@@ -1,5 +1,5 @@
 ---
-# Copyright (C) 2018-2022 Robert Wimmer
+# Copyright (C) 2018-2023 Robert Wimmer
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 - name: Gather instance facts
@@ -33,9 +33,10 @@
   failed_when: wireguard__register_module_enabled is failure
   tags:
     - wg-install
-    - install
+    - wg-install-kernel-module
   when:
     - not ansible_os_family == 'Darwin'
+    - wireguard_install_kernel_module
     - not wireguard_unraid
 
 - name: Set default for WireGuard interface restart behavior
@@ -85,6 +86,7 @@
       {%- endif %}
   tags:
     - skip_ansible_lint
+    - wg-config
 
 - name: Register if config/private key already exists on target host
   ansible.builtin.stat:
@@ -167,6 +169,7 @@
     owner: "{{ wireguard_conf_owner }}"
     group: "{{ wireguard_conf_group }}"
     mode: "{{ wireguard_conf_mode }}"
+    backup: "{{ wireguard_conf_backup }}"
   no_log: "{{ wireguard_config_no_log | bool }}"
   tags:
     - wg-config

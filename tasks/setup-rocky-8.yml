@@ -1,5 +1,5 @@
 ---
-# Copyright (C) 2021-2022 Robert Wimmer
+# Copyright (C) 2021-2023 Robert Wimmer
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 - name: (Rocky Linux 8) Tasks for standard kernel
@@ -11,7 +11,7 @@
         name:
           - epel-release
           - elrepo-release
-        update_cache: true
+        update_cache: "{{ wireguard_update_cache }}"
 
     - name: (Rocky Linux 8) Ensure WireGuard DKMS package is removed
       ansible.builtin.yum:
@@ -40,7 +40,7 @@
       ansible.builtin.yum:
         name:
           - epel-release
-        update_cache: true
+        update_cache: "{{ wireguard_update_cache }}"
 
     - name: (Rocky Linux 8) Ensure WireGuard KMOD package is removed
       ansible.builtin.yum:

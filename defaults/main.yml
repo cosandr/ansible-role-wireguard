@@ -1,5 +1,5 @@
 ---
-# Copyright (C) 2018-2022 Robert Wimmer
+# Copyright (C) 2018-2023 Robert Wimmer
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 #######################################
@@ -31,6 +31,9 @@ wireguard_conf_group: "{{ 'root' if not ansible_os_family == 'Darwin' else 'whee
 
 # The default mode of the wg.conf file
 wireguard_conf_mode: 0600
+
+# Whether any change to the wg.conf file should be backup
+wireguard_conf_backup: false
 
 # The default state of the wireguard service
 wireguard_service_enabled: "yes"
@@ -75,14 +78,25 @@ wireguard_interface_restart: false
 # If not set, a new one is generated on a blank configuration.
 # wireguard_private_key:
 
+# Set to "false" if package cache should not be updated (only relevant if
+# the package manager in question supports this option)
+wireguard_update_cache: "true"
+
+# Normally the role installs and activates the wireguard kernel module where
+# appropriate.  In some cases we might not be able load kernel modules, like
+# unprivileged LXC guests.  If you set this to false you have to ensure
+# the wireguard module is available in the kernel!
+wireguard_install_kernel_module: true
+
 #######################################
 # Settings only relevant for:
 # - Ubuntu
 # - elementary OS
 #######################################
 
-# Set to "false" if package cache should not be updated
-wireguard_ubuntu_update_cache: "true"
+# DEPRECATED: Please use "wireguard_update_cache" instead.
+# Set to "false" if package cache should not be updated.
+wireguard_ubuntu_update_cache: "{{ wireguard_update_cache }}"
 
 # Set package cache valid time
 wireguard_ubuntu_cache_valid_time: "3600"
@@ -94,14 +108,26 @@ wireguard_ubuntu_cache_valid_time: "3600"
 # Set wireguard_centos7_installation_method to "kernel-plus"
 # to use the kernel-plus kernel, which includes a built-in,
 # signed WireGuard module.
-# UTILIZING KERNEL-PLUS WILL PERFORM A SYSTEM REBOOT DURING SETUP!!
 #
 # The default of "standard" will use the standard kernel and
 # the ELRepo module for WireGuard.
 wireguard_centos7_installation_method: "standard"
 
+# Reboot host if necessary if the "kernel-plus" kernel is in use
+wireguard_centos7_kernel_plus_reboot: true
+
 # The default seconds to wait for machine to reboot and respond
+# if "kernel-plus" is in use. Is only relevant if
+# "wireguard_centos7_kernel_plus_reboot" is set to "true".
 wireguard_centos7_kernel_plus_reboot_timeout: "600"
+
+# Reboot host if necessary if the standard kernel is in use
+wireguard_centos7_standard_reboot: true
+
+# The default seconds to wait for machine to reboot and respond
+# if "standard" kernel is in use. Is only relevant if
+# "wireguard_centos7_standard_reboot" is set to "true".
+wireguard_centos7_standard_reboot_timeout: "600"
 
 #########################################
 # Settings only relevant for RockyLinux 8
