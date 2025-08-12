@@ -144,5 +144,5 @@ wireguard_rockylinux8_installation_method: "standard"
 
 wireguard_reresolve_dns_oncalendar: "hourly"
 wireguard_reresolve_dns: false
-wireguard_reresolve_dns_retries: 3
-wireguard_reresolve_dns_retry_delay: 5
+wireguard_reresolve_dns_retries: 10
+wireguard_reresolve_dns_retry_base: 1.5

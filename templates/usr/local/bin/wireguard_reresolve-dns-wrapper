@@ -1,19 +1,22 @@
-#!/bin/sh
+#!/bin/bash
 
 {{ ansible_managed | comment }}
 
 RETRIES={{ wireguard_reresolve_dns_retries }}
-DELAY={{ wireguard_reresolve_dns_retry_delay }}
+RETRY_BASE={{ wireguard_reresolve_dns_retry_base }}
 
 reresolve_config() {
-  tmp_exit=0
+  local tmp_exit=0
+  local delay=1
   for i in $(seq 1 "$RETRIES"); do
     echo "Reresolving $1 attempt $i"
     {{ wireguard_reresolve_dns_path }} "$1"
     tmp_exit=$?
     if [ "$tmp_exit" -ne 0 ]; then
       echo "Reresolve failed, retrying..."
-      sleep "$DELAY"
+      sleep "$delay"
+      # https://stackoverflow.com/questions/12722095/how-do-i-use-floating-point-arithmetic-in-bash#comment46338744_22406193
+      delay=$(awk -v delay="${delay}" -v base="${RETRY_BASE}" 'BEGIN {printf "%.1f", delay*base; exit(0)}')
     else
       return 0
     fi
