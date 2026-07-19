@@ -1,9 +1,111 @@
 <!--
-Copyright (C) 2018-2023 Robert Wimmer
+Copyright (C) 2018-2026 Robert Wimmer
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
 
 # Changelog
+
+## 19.2.0
+
+- **FEATURE**
+  - add support for Ubuntu 26.04
+
+- **MOLECULE**
+  - add Ubuntu 26.04 test VMs to the Molecule scenarios
+
+## 19.1.0
+
+- **OTHER**
+  - update `meta/main.yml`:
+    - remove EL 7/8, Fedora 39/40, Ubuntu 20.04 (focal)
+    - add Debian 13 (trixie), Fedora 43
+
+- **MOLECULE**
+  - use own [githubixx Vagrant boxes](https://portal.cloud.hashicorp.com/vagrant/discover/githubixx) where possible
+
+## 19.0.0
+
+- **POTENTIALLY BREAKING**
+  - treat empty `wireguard_endpoint` as "no endpoint" (no hostname fallback). New behavior: if a peer explicitly sets `wireguard_endpoint: ""`, the template will not fall back to `inventory_hostname` for `Endpoint = ...` anymore. Instead it emits a comment `no endpoint…`. This is a behavior change, but it aligns with the documented contract in `README`: "setting wireguard_endpoint to an empty string means 'this peer has no endpoint'". Practically, it fixes a real bug: because `wireguard_port` is always defined via role defaults, the old logic almost always took the `wireguard_port is defined` branch and would generate `Endpoint = <inventory_hostname>:51820` even when `wireguard_endpoint: ""`. That contradicts `README` and breaks setups where inventory hostnames aren’t resolvable from peers. Who is affected? Only users who were (intentionally or accidentally) relying on the old incorrect behavior where `wireguard_endpoint: ""` still produced an endpoint via hostname fallback. Those users should instead omit `wireguard_endpoint` (to get hostname fallback) or set it to a real hostname/IP. Implemented in [fix(template): prevent hostname fallback when wireguard_endpoint is empty](https://github.com/githubixx/ansible-role-wireguard/pull/228) (contribution by @madic-creates) and [Netplan: treat empty wireguard_endpoint as - no endpoint - (no hostname fallback)](https://github.com/githubixx/ansible-role-wireguard/pull/230)
+
+- **MOLECULE**
+  - add Molecule scenario for `wireguard_endpoint` is set to empty [#231](https://github.com/githubixx/ansible-role-wireguard/pull/231)
+
+## 18.3.0
+
+- **OTHER**
+  - fix for modern PVE installations ([PR #226](https://github.com/githubixx/ansible-role-wireguard/pull/226) - contribution by @pavlozt)
+  - replace injected `ansible_*` facts usage with `ansible_facts[...]` (prepares for ansible-core 2.24 where `INJECT_FACTS_AS_VARS` default changes)
+
+- **FEATURE**
+  - optionally flush handlers at the end of the role via `wireguard_flush_handlers` ([Issue #124](https://github.com/githubixx/ansible-role-wireguard/issues/124))
+
+- **MOLECULE**
+  - replace Vagrant box `alvistack/debian-13` -> `cloud-image/debian-13`
+  - replace Vagrant box `opensuse/Leap-15.6.x86_64` -> `alvistack/opensuse-leap-15.6`
+
+## 18.2.0
+
+- **FEATURE**
+  - add a spoke mode for nodes that should only peer with the hub while keeping the default full-mesh behavior unchanged. See `wireguard_as_spoke` variable and Molecule [spoke-hub](https://github.com/githubixx/ansible-role-wireguard/tree/b85f5842831a02044bd45f0554b9e810688b9148/molecule/spoke-hub) example ([PR #222](https://github.com/githubixx/ansible-role-wireguard/pull/222) - contribution by @eyebrowkang).
+
+## 18.1.0
+
+- **OTHER**
+  - fix issues when running with ansible-core >= 2.19.0 ([Issue #219](https://github.com/githubixx/ansible-role-wireguard/issues/219) / [PR #220](https://github.com/githubixx/ansible-role-wireguard/pull/220/) - contribution by @jonathanplatzer)
+  - replace `ansible_managed` variable with internal `wireguard__ansible_managed` variable. Reason: `DEFAULT_MANAGED_STR` option is deprecated in Ansible 2.19. The `ansible_managed` variable can be set just like any other variable, or a different variable can be used. At the end for now nothing changes for the user of this role as the output string `Ansible managed` will stay the same.
+
+- **MOLECULE**
+  - Molecule: update `netplan` scenario
+  - Molecule: update `single-server` scenario
+
+## 18.0.0
+
+- **BREAKING**
+  - removed support for `CentOS 7` (reached end of life)
+  - removed support for `Ubuntu 20.04` (reached end of life)
+  - removed support for `Fedora 39/40` (reached end of life)
+  - removed support for `openSUSE Leap 15.5` (reached end of life)
+
+- **FEATURE**
+  - add support for `Debian 13` (Trixie)
+  - add support for `Fedora 42`
+
+- **OTHER**
+  - remove unneeded task for `Ubuntu 19.10`
+  - `defaults/main.yml`: add `noqa jinja[spacing]` to ignore `ansible-lint` warning
+  - replace `ansible.builtin.yum` with `ansible.builtin.dnf`
+  - update `.gitignore`
+
+## 17.1.0
+
+- **FIXES**
+  - add missing `wg-config` tag ([Issue #211](https://github.com/githubixx/ansible-role-wireguard/issues/211))
+  - hide peers with empty endpoints ([Issue #101](https://github.com/githubixx/ansible-role-wireguard/issues/101) - contribution by @Miroka96)
+
+- **FEATURE**
+  - add support for `Fedora 40`
+  - add [Netplan](https://netplan.io/) support for Ubuntu (contribution by @kbcz1989)
+
+- **OTHER**
+  - update `.yamllint`
+  - fix `ansible-lint` issues
+  - update `.gitignore`
+
+## 17.0.0
+
+- **BREAKING**
+  - removed support for `openSUSE 15.4` (reached end of life)
+
+- **FEATURE**
+  - add support for `Ubuntu 24.04`
+  - add support for `openSUSE 15.6`
+
+- **MOLECULE**
+  - remove outdated `Proxmox` code
+  - replace Vagrant box `rockylinux/9` with `bento/rockylinux-9`
+  - use `ansible.builtin.package` for AlmaLinux
+  - remove `AlmaLinux 8`, `Rocky Linux 8` and `CentOS 7` (outdated Python makes it hard to test with Ansible)
 
 ## 16.0.2
 
@@ -26,7 +128,7 @@ SPDX-License-Identifier: GPL-3.0-or-later
   - introduce `wireguard_conf_backup` variable to keep track of configuration changes. Default to `false`. (contribution by @shk3bq4d)
   - introduce `wireguard_install_kernel_module`. Allows to skip loading the `wireguard` kernel module. Default to `true` (which was the previous behavior). (contribution by @gregorydlogan)
 
-- **Molecule**
+- **MOLECULE**
   - use different IP addresses
   - use `generic` Vagrant boxes for Rocky Linux
   - use `alvistack` Vagrant boxes for Ubuntu

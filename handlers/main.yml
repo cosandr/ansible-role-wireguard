@@ -1,5 +1,5 @@
 ---
-# Copyright (C) 2018-2023 Robert Wimmer
+# Copyright (C) 2018-2025 Robert Wimmer
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 - name: Reload systemd
@@ -15,7 +15,7 @@
     - started
   when:
     - wireguard__restart_interface
-    - not ansible_os_family == 'Darwin'
+    - ansible_facts['os_family'] != 'Darwin'
     - wireguard_service_enabled == "yes"
     - not wireguard_unraid
   listen: "reconfigure wireguard"
@@ -35,7 +35,7 @@
     executable: "/bin/bash"
   when:
     - not wireguard__restart_interface
-    - not ansible_os_family == 'Darwin'
+    - ansible_facts['os_family'] != 'Darwin'
     - wireguard_service_enabled == "yes"
     - not wireguard_unraid
   listen: "reconfigure wireguard"
@@ -55,3 +55,32 @@
     - wireguard_service_enabled == "yes"
     - wireguard_unraid
   listen: "reconfigure wireguard"
+
+- name: Generating Netplan Configuration
+  ansible.builtin.command: netplan generate
+  listen: reconfigure netplan
+  notify: netplan apply config
+  changed_when: true
+  become: true
+  when:
+    - wireguard_ubuntu_use_netplan
+
+- name: Applying Netplan Configuration
+  ansible.builtin.command: netplan apply
+  listen: netplan apply config
+  notify: restart systemd-networkd
+  changed_when: true
+  become: true
+  when:
+    - wireguard_ubuntu_use_netplan
+    - wireguard_interface_restart
+
+- name: Restart systemd-networkd
+  ansible.builtin.systemd:
+    name: systemd-networkd
+    state: restarted
+  listen: restart systemd-networkd
+  become: true
+  when:
+    - wireguard_ubuntu_use_netplan
+    - wireguard_interface_restart

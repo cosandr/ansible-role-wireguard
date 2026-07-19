@@ -1,5 +1,5 @@
 ---
-# Copyright (C) 2018-2023 Robert Wimmer
+# Copyright (C) 2018-2025 Robert Wimmer
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 - name: Gather instance facts
@@ -13,11 +13,11 @@
         - wg-install
         - install
   with_first_found:
-    - "setup-{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "setup-{{ ansible_distribution | lower }}-{{ ansible_distribution_version }}.yml"
-    - "setup-{{ ansible_distribution | lower }}-{{ ansible_distribution_release }}.yml"
-    - "setup-{{ ansible_distribution | lower }}.yml"
-    - "setup-{{ ansible_os_family | lower }}.yml"
+    - "setup-{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_major_version'] }}.yml"
+    - "setup-{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_version'] }}.yml"
+    - "setup-{{ ansible_facts['distribution'] | lower }}-{{ ansible_facts['distribution_release'] }}.yml"
+    - "setup-{{ ansible_facts['distribution'] | lower }}.yml"
+    - "setup-{{ ansible_facts['os_family'] | lower }}.yml"
   tags:
     - wg-install
     - install
@@ -35,24 +35,21 @@
     - wg-install
     - wg-install-kernel-module
   when:
-    - not ansible_os_family == 'Darwin'
+    - ansible_facts['os_family'] != 'Darwin'
     - wireguard_install_kernel_module
     - not wireguard_unraid
 
 - name: Set default for WireGuard interface restart behavior
   ansible.builtin.set_fact:
-    wireguard__restart_interface: >-
-      {%- if wireguard_interface_restart -%}
-      true
-      {%- else -%}
-      false
-      {%- endif %}
+    wireguard__restart_interface: "{{ wireguard_interface_restart | bool }}"
   tags:
+    - wg-config
     - skip_ansible_lint
 
 - name: Make sure wg syncconf option is available
   when:
     - not wireguard_interface_restart
+    - not wireguard_ubuntu_use_netplan
   tags:
     - wg-config
   block:
@@ -90,7 +87,7 @@
 
 - name: Register if config/private key already exists on target host
   ansible.builtin.stat:
-    path: "{{ wireguard_remote_directory }}/{{ wireguard_interface }}.conf"
+    path: "{{ wireguard_remote_directory }}/{{ wireguard_conf_filename }}"
   register: wireguard__register_config_file
   tags:
     - wg-generate-keys
@@ -107,6 +104,7 @@
       changed_when: false
       check_mode: false
       no_log: '{{ ansible_verbosity < 3 }}'
+      check_mode: false
       tags:
         - wg-generate-keys
 
@@ -124,7 +122,7 @@
   block:
     - name: Read WireGuard config file
       ansible.builtin.slurp:
-        src: "{{ wireguard_remote_directory }}/{{ wireguard_interface }}.conf"
+        src: "{{ wireguard_remote_directory }}/{{ wireguard_conf_filename }}"
       register: wireguard__register_config
       no_log: '{{ ansible_verbosity < 3 }}'
       tags:
@@ -132,7 +130,11 @@
 
     - name: Set private key fact
       ansible.builtin.set_fact:
-        wireguard_private_key: "{{ wireguard__register_config['content'] | b64decode | regex_findall('PrivateKey = (.*)') | first }}"
+        wireguard_private_key: >-
+          {{ wireguard__register_config['content'] | b64decode |
+             regex_findall(wireguard_ubuntu_use_netplan |
+             ternary('key:\s*(.*)$', 'PrivateKey\s*=\s*(.*)$'), multiline=True) |
+             first }}
       no_log: '{{ ansible_verbosity < 3 }}'
       tags:
         - wg-config
@@ -158,14 +160,17 @@
   ansible.builtin.file:
     dest: "{{ wireguard_remote_directory }}"
     state: directory
-    mode: 0700
+    mode: "0700"
   tags:
     - wg-config
+  when: not wireguard_ubuntu_use_netplan
 
 - name: Generate WireGuard configuration file
+  vars:
+    wireguard__ansible_managed: "Ansible managed"
   ansible.builtin.template:
-    src: etc/wireguard/wg.conf.j2
-    dest: "{{ wireguard_remote_directory }}/{{ wireguard_interface }}.conf"
+    src: "etc/{{ 'wireguard/wg.conf.j2' if not wireguard_ubuntu_use_netplan else 'netplan/wg.yaml.j2' }}"
+    dest: "{{ wireguard_remote_directory }}/{{ wireguard_conf_filename }}"
     owner: "{{ wireguard_conf_owner }}"
     group: "{{ wireguard_conf_group }}"
     mode: "{{ wireguard_conf_mode }}"
@@ -174,7 +179,7 @@
   tags:
     - wg-config
   notify:
-    - reconfigure wireguard
+    - "reconfigure {{ 'wireguard' if not wireguard_ubuntu_use_netplan else 'netplan' }}"
 
 - name: Ensure legacy reload-module-on-update is absent
   ansible.builtin.file:
@@ -189,14 +194,15 @@
     state: "{{ wireguard_service_state }}"
     enabled: "{{ wireguard_service_enabled }}"
   when:
-    - not ansible_os_family == 'Darwin'
+    - ansible_facts['os_family'] != 'Darwin'
+    - not wireguard_ubuntu_use_netplan
     - not wireguard_unraid
 
 - name: Install reresolve-dns
   ansible.builtin.include_tasks:
     file: install-reresolve-dns.yml
   when:
-    - not ansible_os_family == 'Darwin'
+    - ansible_facts['os_family'] != 'Darwin'
     - not wireguard_unraid
     - wireguard_reresolve_dns
 
@@ -204,6 +210,13 @@
   ansible.builtin.include_tasks:
     file: remove-reresolve-dns.yml
   when:
-    - not ansible_os_family == 'Darwin'
+    - ansible_facts['os_family'] != 'Darwin'
     - not wireguard_unraid
     - not wireguard_reresolve_dns
+
+- name: Flush notified handlers at end of role
+  ansible.builtin.meta: flush_handlers
+  when:
+    - wireguard_flush_handlers | bool
+  tags:
+    - wg-config

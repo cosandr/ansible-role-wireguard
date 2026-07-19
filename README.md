@@ -1,5 +1,5 @@
 <!--
-Copyright (C) 2018-2023 Robert Wimmer
+Copyright (C) 2018-2026 Robert Wimmer
 Copyright (C) 2019 fbourqui
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
@@ -10,32 +10,36 @@ This Ansible role is used in my blog series [Kubernetes the not so hard way with
 
 In general WireGuard is a network tunnel (VPN) for IPv4 and IPv6 that uses UDP. If you need more information about [WireGuard](https://www.wireguard.io/) you can find a good introduction here: [Installing WireGuard, the Modern VPN](https://research.kudelskisecurity.com/2017/06/07/installing-wireguard-the-modern-vpn/).
 
-## Linux
+## Supported operating systems
+
+### Linux
 
 This role should work with:
 
-- Ubuntu 20.04 (Focal Fossa)
 - Ubuntu 22.04 (Jammy Jellyfish)
+- Ubuntu 24.04 (Noble Numbat)
+- Ubuntu 26.04 (Resolute Raccoon)
 - Archlinux
-- Debian 11 (Bullseye)
 - Debian 12 (Bookworm)
-- Fedora 39
-- CentOS 7
-- AlmaLinux 8
+- Debian 13 (Trixie)
+- Fedora 42
+- Fedora 43
 - AlmaLinux 9
-- Rocky Linux 8
+- AlmaLinux 10
 - Rocky Linux 9
-- openSUSE Leap 15.4
-- openSUSE Leap 15.5
+- Rocky Linux 10
+- openSUSE Leap 15.6
+- openSUSE Leap 16.0
 - Oracle Linux 9
 
-## Best effort
+### Linux - Best effort
 
+- Debian 11 (Bullseye)
+- AlmaLinux 8
+- Rocky Linux 8
 - elementary OS 6
 
-Molecule tests are [available](https://github.com/githubixx/ansible-role-wireguard#testing) (see further down below). It should also work with `Raspbian Buster` but for this one there is no test available. MacOS (see below) should also work partitially but is only best effort.
-
-## MacOS
+### MacOS
 
 While this playbook configures, enables and starts a `systemd` service on Linux in a such a way that no additional action is needed, on MacOS it installs the required packages and it just generates the correct `wg0.conf` file that is then placed in the specified `wireguard_remote_directory` (`/opt/local/etc/wireguard` by default). In order to run the VPN, then, you need to:
 
@@ -69,55 +73,31 @@ See full [CHANGELOG.md](https://github.com/githubixx/ansible-role-wireguard/blob
 
 **Recent changes:**
 
-## 16.0.2
-
-- **OTHER**
-  - revert change in `.github/workflows/release.yml`
-
-## 16.0.1
-
-- **OTHER**
-  - update `.github/workflows/release.yml`
-  - update `meta/main.yml`
-
-## 16.0.0
-
-- **BREAKING**
-  - removed support for Fedora 37/38 (reached end of life)
+## 19.2.0
 
 - **FEATURE**
-  - add support for Fedora 39
-  - introduce `wireguard_conf_backup` variable to keep track of configuration changes. Default to `false`. (contribution by @shk3bq4d)
-  - introduce `wireguard_install_kernel_module`. Allows to skip loading the `wireguard` kernel module. Default to `true` (which was the previous behavior). (contribution by @gregorydlogan)
-
-- **Molecule**
-  - use different IP addresses
-  - use `generic` Vagrant boxes for Rocky Linux
-  - use `alvistack` Vagrant boxes for Ubuntu
-  - use official Rocky Linux 9 Vagrant box
-  - use official AlmaLinux Vagrant boxes
-  - move `memory` and `cpus` parameter to Vagrant boxes
-
-## 15.0.0
-
-- **BREAKING**
-  - removed support for Ubuntu 18.04 (reached end of life)
-  - removed support for Fedora 36 (reached end of life)
-
-- **FEATURE**
-  - add support for Fedora 37
-  - add support for Fedora 38
-  - add support for openSUSE 15.5
-  - add support for Debian 12
-  - prefix host name comment with `Name =` for [wg-info](https://github.com/asdil12/wg-info) in WireGuard interface configuration (contribution by @tarag)
+  - add support for Ubuntu 26.04
 
 - **MOLECULE**
-  - rename `kvm` scenario to `default`
-  - rename `kvm-single-server` scenario to `single-server`
-  - upgrade OS and reboot in prepare before converge for Almalinux
+  - add Ubuntu 26.04 test VMs to the Molecule scenarios
+
+## 19.1.0
 
 - **OTHER**
-  - fix `ansible-lint` issues
+  - update `meta/main.yml`:
+    - remove EL 7/8, Fedora 39/40, Ubuntu 20.04 (focal)
+    - add Debian 13 (trixie), Fedora 43
+
+- **MOLECULE**
+  - use own [githubixx Vagrant boxes](https://portal.cloud.hashicorp.com/vagrant/discover/githubixx) where possible
+
+## 19.0.0
+
+- **POTENTIALLY BREAKING**
+  - treat empty `wireguard_endpoint` as "no endpoint" (no hostname fallback). New behavior: if a peer explicitly sets `wireguard_endpoint: ""`, the template will not fall back to `inventory_hostname` for `Endpoint = ...` anymore. Instead it emits a comment `no endpoint…`. This is a behavior change, but it aligns with the documented contract in `README`: "setting wireguard_endpoint to an empty string means 'this peer has no endpoint'". Practically, it fixes a real bug: because `wireguard_port` is always defined via role defaults, the old logic almost always took the `wireguard_port is defined` branch and would generate `Endpoint = <inventory_hostname>:51820` even when `wireguard_endpoint: ""`. That contradicts `README` and breaks setups where inventory hostnames aren’t resolvable from peers. Who is affected? Only users who were (intentionally or accidentally) relying on the old incorrect behavior where `wireguard_endpoint: ""` still produced an endpoint via hostname fallback. Those users should instead omit `wireguard_endpoint` (to get hostname fallback) or set it to a real hostname/IP. Implemented in [fix(template): prevent hostname fallback when wireguard_endpoint is empty](https://github.com/githubixx/ansible-role-wireguard/pull/228) (contribution by @madic-creates) and [Netplan: treat empty wireguard_endpoint as - no endpoint - (no hostname fallback)](https://github.com/githubixx/ansible-role-wireguard/pull/230)
+
+- **MOLECULE**
+  - add Molecule scenario for `wireguard_endpoint` is set to empty [#231](https://github.com/githubixx/ansible-role-wireguard/pull/231)
 
 ## Installation
 
@@ -125,7 +105,7 @@ See full [CHANGELOG.md](https://github.com/githubixx/ansible-role-wireguard/blob
 `git clone https://github.com/githubixx/ansible-role-wireguard.git githubixx.ansible_role_wireguard`
 
 - Via `ansible-galaxy` command and download directly from Ansible Galaxy:
-`ansible-galaxy install role githubixx.ansible_role_wireguard`
+`ansible-galaxy role install githubixx.ansible_role_wireguard`
 
 - Create a `requirements.yml` file with the following content (this will download the role from Github) and install with
 `ansible-galaxy role install -r requirements.yml`:
@@ -135,7 +115,7 @@ See full [CHANGELOG.md](https://github.com/githubixx/ansible-role-wireguard/blob
 roles:
   - name: githubixx.ansible_role_wireguard
     src: https://github.com/githubixx/ansible-role-wireguard.git
-    version: 16.0.0
+    version: 19.0.0
 ```
 
 ## Role Variables
@@ -144,8 +124,14 @@ These variables can be changed in `group_vars/` e.g.:
 
 ```yaml
 # Directory to store WireGuard configuration on the remote hosts
-wireguard_remote_directory: "/etc/wireguard"              # On Linux
-# wireguard_remote_directory: "/opt/local/etc/wireguard"  # On MacOS
+wireguard_remote_directory: >-
+  {%- if wireguard_ubuntu_use_netplan -%}
+  /etc/netplan
+  {%- elif ansible_facts['os_family'] == 'Darwin' -%}
+  /opt/local/etc/wireguard
+  {%- else -%}
+  /etc/wireguard
+  {%- endif %}
 
 # The default port WireGuard will listen if not specified otherwise.
 wireguard_port: "51820"
@@ -157,7 +143,7 @@ wireguard_interface: "wg0"
 wireguard_conf_owner: root
 
 # The default group of the wg.conf file
-wireguard_conf_group: "{{ 'root' if not ansible_os_family == 'Darwin' else 'wheel' }}"
+wireguard_conf_group: "{{ 'root' if ansible_facts['os_family'] != 'Darwin' else 'wheel' }}"
 
 # The default mode of the wg.conf file
 wireguard_conf_mode: 0600
@@ -202,7 +188,20 @@ wireguard_service_state: "started"
 # If you have a more dynamic routing setup then setting this to "true" might be
 # the safest way to go. Also if you want to avoid the possibility creating some
 # hard to detect side effects this option should be considered.
+# If using netplan to configure WireGuard interfaces this option should be set
+# to "true" if netplan configuration should be applied, otherwise it will
+# just be generated.
 wireguard_interface_restart: false
+
+# By default Ansible handlers (like the role's WireGuard "reconfigure" handler)
+# are executed at the end of the whole play. Setting this to "true" will flush
+# notified handlers at the end of this role run, so changes are applied before
+# subsequent roles/tasks run.
+#
+# Possible options:
+# - false (default)
+# - true
+wireguard_flush_handlers: false
 
 # Normally the role automatically creates a private key the very first time
 # if there isn't already a WireGuard configuration. But this option allows
@@ -220,6 +219,10 @@ wireguard_update_cache: "true"
 # unprivileged LXC guests.  If you set this to false you have to ensure
 # the wireguard module is available in the kernel!
 wireguard_install_kernel_module: true
+
+# Set to "true" to declare this host as a spoke in a hub-and-spoke layout.
+# Spokes only configure hub peers; hubs still include every peer.
+wireguard_as_spoke: false
 ```
 
 There are also a few Linux distribution specific settings:
@@ -238,33 +241,8 @@ wireguard_ubuntu_update_cache: "{{ wireguard_update_cache }}"
 # Set package cache valid time
 wireguard_ubuntu_cache_valid_time: "3600"
 
-#######################################
-# Settings only relevant for CentOS 7
-#######################################
-
-# Set wireguard_centos7_installation_method to "kernel-plus"
-# to use the kernel-plus kernel, which includes a built-in,
-# signed WireGuard module.
-#
-# The default of "standard" will use the standard kernel and
-# the ELRepo module for WireGuard.
-wireguard_centos7_installation_method: "standard"
-
-# Reboot host if necessary if the "kernel-plus" kernel is in use
-wireguard_centos7_kernel_plus_reboot: true
-
-# The default seconds to wait for machine to reboot and respond
-# if "kernel-plus" is in use. Is only relevant if
-# "wireguard_centos7_kernel_plus_reboot" is set to "true".
-wireguard_centos7_kernel_plus_reboot_timeout: "600"
-
-# Reboot host if necessary if the standard kernel is in use
-wireguard_centos7_standard_reboot: true
-
-# The default seconds to wait for machine to reboot and respond
-# if "standard" kernel is in use. Is only relevant if
-# "wireguard_centos7_standard_reboot" is set to "true".
-wireguard_centos7_standard_reboot_timeout: "600"
+# Set to "true" if netplan should be used to configure WireGuard interfaces
+wireguard_ubuntu_use_netplan: false
 
 #########################################
 # Settings only relevant for RockyLinux 8
@@ -369,7 +347,9 @@ wireguard_unmanaged_peers:
 
 One of `wireguard_address` (deprecated) or `wireguard_addresses` (recommended) is required as already mentioned. It's the IPs of the interface name defined with `wireguard_interface` variable (`wg0` by default). Every host needs at least one unique VPN IP of course. If you don't set `wireguard_endpoint` the playbook will use the hostname defined in the `vpn` hosts group (the Ansible inventory hostname). If you set `wireguard_endpoint` to `""` (empty string) that peer won't have a endpoint. That means that this host can only access hosts that have a `wireguard_endpoint`. That's useful for clients that don't expose any services to the VPN and only want to access services on other hosts. So if you only define one host with `wireguard_endpoint` set and all other hosts have `wireguard_endpoint` set to `""` (empty string) that basically means you've only clients besides one which in that case is the WireGuard server. The third possibility is to set `wireguard_endpoint` to some hostname. E.g. if you have different hostnames for the private and public DNS of that host and need different DNS entries for that case setting `wireguard_endpoint` becomes handy. Take for example the IP above: `wireguard_address: "10.8.0.101"`. That's a private IP and I've created a DNS entry for that private IP like `host01.i.domain.tld` (`i` for internal in that case). For the public IP I've created a DNS entry like `host01.p.domain.tld` (`p` for public). The `wireguard_endpoint` needs to be a interface that the other members in the `vpn` group can connect to. So in that case I would set `wireguard_endpoint` to `host01.p.domain.tld` because WireGuard normally needs to be able to connect to the public IP of the other host(s).
 
-Here is a litte example for what I use the playbook: I use WireGuard to setup a fully meshed VPN (every host can directly connect to every other host) and run my Kubernetes (K8s) cluster at Hetzner Cloud (but you should be able to use any hoster you want). So the important components like the K8s controller and worker nodes (which includes the pods) only communicate via encrypted WireGuard VPN. Also (as already mentioned) I've two clients. Both have `kubectl` installed and are able to talk to the internal Kubernetes API server by using WireGuard VPN. One of the two clients also exposes a WireGuard endpoint because the Postfix mailserver in the cloud and my internal Postfix needs to be able to talk to each other. I guess that's maybe a not so common use case for WireGuard :D But it shows what's possible. So let me explain the setup which might help you to use this Ansible role.
+## Example
+
+Here is a little example for what I use the playbook: I use WireGuard to setup a fully meshed VPN (every host can directly connect to every other host) and run my Kubernetes (K8s) cluster at Hetzner Cloud (but you should be able to use any hoster you want). So the important components like the K8s controller and worker nodes (which includes the pods) only communicate via encrypted WireGuard VPN. Also (as already mentioned) I've two clients. Both have `kubectl` installed and are able to talk to the internal Kubernetes API server by using WireGuard VPN. One of the two clients also exposes a WireGuard endpoint because the Postfix mailserver in the cloud and my internal Postfix needs to be able to talk to each other. I guess that's maybe a not so common use case for WireGuard :D But it shows what's possible. So let me explain the setup which might help you to use this Ansible role.
 
 First, here is a part of my Ansible `hosts` file:
 
@@ -578,7 +558,7 @@ vpn2:
         - "10.9.1.1/32"
       wireguard_endpoint: multi.example.com
     another:
-      wireguard_address:
+      wireguard_addresses:
         - "10.9.1.2/32"
       wireguard_endpoint: another.example.com
 ```
@@ -599,7 +579,7 @@ Sample playbooks for example above:
 
 ## Testing
 
-This role has a small test setup that is created using [Molecule](https://github.com/ansible-community/molecule), libvirt (vagrant-libvirt) and QEMU/KVM. Please see my blog post [Testing Ansible roles with Molecule, libvirt (vagrant-libvirt) and QEMU/KVM](https://www.tauceti.blog/posts/testing-ansible-roles-with-molecule-libvirt-vagrant-qemu-kvm/) how to setup. The test configuration is [here](https://github.com/githubixx/ansible-role-wireguard/tree/master/molecule/default).
+This role has a small test setup that is created using [Molecule](https://github.com/ansible-community/molecule), libvirt (vagrant-libvirt) and QEMU/KVM. Please see my blog post [Testing Ansible roles with Molecule, libvirt (vagrant-libvirt) and QEMU/KVM](https://www.tauceti.blog/posts/testing-ansible-roles-with-molecule-libvirt-vagrant-qemu-kvm/) how to setup. The test configuration is here: [ansible-role-wireguard/molecule/default](https://github.com/githubixx/ansible-role-wireguard/tree/master/molecule/default).
 
 Afterwards molecule can be executed:
 
