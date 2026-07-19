@@ -104,7 +104,6 @@
       changed_when: false
       check_mode: false
       no_log: '{{ ansible_verbosity < 3 }}'
-      check_mode: false
       tags:
         - wg-generate-keys
 
