@@ -12,7 +12,7 @@ wireguard_managed_peers: "{{ ansible_play_hosts }}"
 wireguard_config_no_log: "{{ ansible_verbosity < 3 }}"
 
 # Detect if running on unraid
-wireguard_unraid: "{{ (ansible_kernel | lower).find('unraid') != -1 }}"
+wireguard_unraid: "{{ (ansible_facts.kernel | lower).find('unraid') != -1 }}"
 
 # Directory to store WireGuard configuration on the remote hosts
 # noqa jinja[spacing]
